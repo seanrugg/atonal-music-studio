@@ -1,0 +1,26 @@
+# Atonal Music Studio — Python dependencies
+# Install with:  pip install -r requirements.txt
+
+# Core UI
+PyQt6>=6.4.0
+
+# Audio synthesis and processing
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Real-time audio playback
+sounddevice>=0.4.6
+
+# Native audio file I/O  (WAV, FLAC, OGG, AIFF)
+soundfile>=0.12.1
+
+# Format conversion (MP3, M4A, AAC)  — also requires FFmpeg on your system
+pydub>=0.25.1
+
+# ---------------------------------------------------------------------------
+# NOTE: DSF / DFF (DSD audio) is not supported natively.
+# Convert DSD files to WAV 24-bit first using an external tool such as:
+#   - dsd2pcm  (free, command-line)
+#   - JRiver Media Center
+#   - Saracon
+# ---------------------------------------------------------------------------
