@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Atonal Music Studio
+Comment=Non-traditional music composition tool
+Exec=bash -c 'cd ~/atonal-music-studio && source venv/bin/activate && python main.py'
+Icon=/home/%u/atonal-music-studio/icon.png
+Type=Application
+Terminal=false
+Categories=Audio;Music;
+StartupNotify=true
