@@ -50,16 +50,33 @@ Verify: open a terminal and run `python --version` (or `python3 --version`).
 
 ### Step 2 — Download the application
 
-Place all five files from this folder in the same directory on your computer:
+**Option A — Clone from GitHub (recommended)**
 
+git clone https://github.com/seanrugg/atonal-music-studio.git
+cd atonal-music-studio
 ```
-atonal_music_studio/
+
+If git is not installed:
+- **Linux**: `sudo apt install git`
+- **macOS**: `brew install git` or accept the Xcode prompt when you first run `git`
+- **Windows**: Download from https://git-scm.com
+
+**Option B — Download as a ZIP**
+
+1. Go to https://github.com/seanrugg/atonal-music-studio
+2. Click the green **Code** button → **Download ZIP**
+3. Extract the ZIP and `cd` into the extracted folder
+
+Either way, your working directory should contain these files:
+```
+atonal-music-studio/
 ├── main.py
 ├── audio_engine.py
 ├── equation_engine.py
 ├── project_io.py
-└── requirements.txt
-```
+├── requirements.txt
+├── README.md
+└── .gitignore
 
 ---
 
