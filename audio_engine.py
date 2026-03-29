@@ -4,9 +4,10 @@ audio_engine.py — Atonal Music Studio
 Core audio synthesis engine.
 
 Provides:
-  - Waveform generators  : sine, sawtooth, square
+  - Waveform generators  : sine, sawtooth, square, triangle
   - ADSR envelope shaping
   - Note generation
+  - Schroeder reverb (comb + allpass network, no external deps)
   - Stereo mixing utilities
   - AudioEngine class for playback (sounddevice-backed)
 
@@ -28,9 +29,10 @@ import soundfile as sf
 
 SAMPLE_RATE: int = 44_100
 
-# Build a complete list of note names  C0 … B8
 _CHROMATIC = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 NOTE_NAMES: list[str] = [f"{n}{o}" for o in range(9) for n in _CHROMATIC]
+
+WAVE_TYPES: list[str] = ["Sine", "Sawtooth", "Square", "Triangle"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -116,6 +118,23 @@ def generate_square(
     return (amplitude * signal.square(2.0 * np.pi * freq * t, duty=duty)).astype(np.float32)
 
 
+def generate_triangle(
+    freq: float,
+    duration: float,
+    sr: int = SAMPLE_RATE,
+    amplitude: float = 0.7,
+) -> np.ndarray:
+    """
+    Return a float32 triangle wave of *duration* seconds.
+
+    A triangle wave has softer harmonics than square or sawtooth (only odd
+    harmonics, falling off at 1/n²) — sits tonally between sine and sawtooth.
+    """
+    t = np.linspace(0.0, duration, int(sr * duration), endpoint=False)
+    # scipy sawtooth with width=0.5 gives a triangle wave
+    return (amplitude * signal.sawtooth(2.0 * np.pi * freq * t, width=0.5)).astype(np.float32)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # ADSR envelope
 # ─────────────────────────────────────────────────────────────────────────────
@@ -147,27 +166,22 @@ def apply_adsr(
     env = np.empty(n, dtype=np.float32)
     pos = 0
 
-    # Attack
     end = min(pos + a, n)
     env[pos:end] = np.linspace(0.0, 1.0, end - pos, dtype=np.float32)
     pos = end
 
-    # Decay
     end = min(pos + d, n)
     env[pos:end] = np.linspace(1.0, sustain, end - pos, dtype=np.float32)
     pos = end
 
-    # Sustain
     end = min(pos + s, n)
     env[pos:end] = sustain
     pos = end
 
-    # Release
     end = min(pos + r, n)
     env[pos:end] = np.linspace(sustain, 0.0, end - pos, dtype=np.float32)
     pos = end
 
-    # Safety: fill any remaining samples
     if pos < n:
         env[pos:] = 0.0
 
@@ -195,7 +209,7 @@ def generate_note(
 
     Parameters
     ----------
-    wave_type : 'sine' | 'sawtooth' | 'square'
+    wave_type : 'sine' | 'sawtooth' | 'square' | 'triangle'
     duty      : square-wave duty cycle (ignored for other wave types)
     """
     wt = wave_type.lower()
@@ -205,10 +219,110 @@ def generate_note(
         buf = generate_sawtooth(freq, duration, sr, amplitude)
     elif wt == "square":
         buf = generate_square(freq, duration, sr, amplitude, duty)
+    elif wt == "triangle":
+        buf = generate_triangle(freq, duration, sr, amplitude)
     else:
         buf = generate_sine(freq, duration, sr, amplitude)
 
     return apply_adsr(buf, sr, attack, decay, sustain, release)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Schroeder Reverb
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Schroeder reverb delay times (in seconds) — classic Moorer/Schroeder values
+# scaled slightly for a musical room feel.
+_COMB_DELAYS_S   = [0.02971, 0.03372, 0.03671, 0.04013]
+_ALLPASS_DELAYS_S = [0.005, 0.0017]
+_COMB_GAIN       = 0.84   # feedback gain for comb filters
+_ALLPASS_GAIN    = 0.7    # allpass coefficient
+
+
+def _comb_filter(
+    x: np.ndarray,
+    delay_samples: int,
+    gain: float,
+) -> np.ndarray:
+    """Single feedback comb filter."""
+    y = np.zeros_like(x)
+    buf = np.zeros(delay_samples, dtype=np.float32)
+    ptr = 0
+    for i in range(len(x)):
+        delayed = buf[ptr]
+        y[i] = x[i] + gain * delayed
+        buf[ptr] = x[i] + gain * delayed
+        ptr = (ptr + 1) % delay_samples
+    return y
+
+
+def _allpass_filter(
+    x: np.ndarray,
+    delay_samples: int,
+    gain: float,
+) -> np.ndarray:
+    """Single Schroeder allpass filter."""
+    y = np.zeros_like(x)
+    buf = np.zeros(delay_samples, dtype=np.float32)
+    ptr = 0
+    for i in range(len(x)):
+        delayed = buf[ptr]
+        v = x[i] + gain * delayed
+        y[i] = -gain * v + delayed
+        buf[ptr] = v
+        ptr = (ptr + 1) % delay_samples
+    return y
+
+
+def apply_reverb(
+    audio: np.ndarray,
+    sr: int = SAMPLE_RATE,
+    room_size: float = 0.5,
+    wet: float = 0.3,
+) -> np.ndarray:
+    """
+    Apply a Schroeder reverb to *audio*.
+
+    Works on both mono (N,) and stereo (N, 2) float32 arrays.
+    Returns the same shape as input.
+
+    Parameters
+    ----------
+    room_size : 0.0–1.0 — scales comb filter feedback gain.
+                0.0 = very short / tight room,  1.0 = large / long tail.
+    wet       : 0.0–1.0 — mix between dry (0) and wet (1) signal.
+                Typical useful range is 0.1–0.5.
+    """
+    room_size = float(np.clip(room_size, 0.0, 1.0))
+    wet       = float(np.clip(wet,       0.0, 1.0))
+
+    # Scale comb gain by room_size  (0.5 → gain, 1.0 → gain*1.12, 0.0 → gain*0.6)
+    gain = _COMB_GAIN * (0.6 + 0.52 * room_size)
+
+    stereo_input = audio.ndim == 2
+    if stereo_input:
+        # Process each channel independently
+        left  = apply_reverb(audio[:, 0], sr, room_size, wet)
+        right = apply_reverb(audio[:, 1], sr, room_size, wet)
+        return np.column_stack([left, right]).astype(np.float32)
+
+    mono = audio.astype(np.float32)
+
+    # Parallel comb filters
+    comb_out = np.zeros_like(mono)
+    for delay_s in _COMB_DELAYS_S:
+        d = max(1, int(delay_s * sr))
+        comb_out += _comb_filter(mono, d, gain)
+    comb_out /= len(_COMB_DELAYS_S)
+
+    # Series allpass filters
+    ap_out = comb_out
+    for delay_s in _ALLPASS_DELAYS_S:
+        d = max(1, int(delay_s * sr))
+        ap_out = _allpass_filter(ap_out, d, _ALLPASS_GAIN)
+
+    result = (1.0 - wet) * mono + wet * ap_out
+    return np.clip(result, -1.0, 1.0).astype(np.float32)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -219,8 +333,6 @@ def mono_to_stereo(mono: np.ndarray, pan: float = 0.0) -> np.ndarray:
     """
     Convert a mono float32 array to a stereo (N, 2) float32 array.
 
-    Parameters
-    ----------
     pan : -1.0 = hard left, 0.0 = centre, +1.0 = hard right
     """
     pan = float(np.clip(pan, -1.0, 1.0))
@@ -309,7 +421,7 @@ class AudioEngine:
     Usage::
 
         engine = AudioEngine()
-        engine.play(my_buffer)          # non-blocking
+        engine.play(my_buffer)
         engine.play(my_buffer, loop=True)
         engine.stop()
     """
@@ -323,8 +435,6 @@ class AudioEngine:
         self._playing: bool = False
         self._lock = threading.Lock()
 
-    # ------------------------------------------------------------------ public
-
     @property
     def is_playing(self) -> bool:
         return self._playing
@@ -337,7 +447,6 @@ class AudioEngine:
         """
         self.stop()
 
-        # Normalise to stereo float32
         if audio_data.ndim == 1:
             audio_data = mono_to_stereo(audio_data)
         buf = np.clip(audio_data.astype(np.float32), -1.0, 1.0)
@@ -363,8 +472,6 @@ class AudioEngine:
             except Exception:
                 pass
             self._stream = None
-
-    # ----------------------------------------------------------------- private
 
     def _callback(self, outdata, frames, time_info, status):
         with self._lock:
