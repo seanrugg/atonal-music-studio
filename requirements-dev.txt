@@ -1,0 +1,10 @@
+# requirements-dev.txt — Atonal Music Studio development dependencies
+# These are NOT needed to run the app — only to build the distributable.
+#
+# Install with:  pip install -r requirements-dev.txt
+
+# Packaging
+pyinstaller>=6.0.0
+
+# Icon conversion (PNG → ICO for Windows, PNG → ICNS helper for macOS)
+Pillow>=10.0.0
