@@ -1,6 +1,64 @@
 # Atonal Music Studio
 
-A cross-platform desktop application for non-traditional music composition — atonal music, mathematical tone sequences, and ambient soundscapes.
+A cross-platform desktop application for non-traditional music composition — atonal music, mathematical tone sequences, iterated function systems, and ambient soundscapes.
+
+---
+
+## Download & Install
+
+> No Python installation required. Just download and run.
+
+### Windows
+
+1. Download **AtonalMusicStudio-Setup.exe** from the [Releases page](https://github.com/seanrugg/atonal-music-studio/releases)
+2. Double-click the installer
+3. If Windows shows a **"Windows protected your PC"** SmartScreen warning, click **"More info"** → **"Run anyway"** — this appears because the app is currently unsigned
+4. Follow the installer steps — a Start Menu shortcut is created automatically
+5. Launch **Atonal Music Studio** from the Start Menu
+
+### macOS
+
+1. Download **AtonalMusicStudio-1.0.0-mac.dmg** from the [Releases page](https://github.com/seanrugg/atonal-music-studio/releases)
+2. Double-click the DMG to mount it
+3. Drag **Atonal Music Studio** into your **Applications** folder
+4. On first launch, **right-click the app → Open** (instead of double-clicking) — macOS Gatekeeper requires this one-time step for unsigned apps
+5. Click **Open** in the confirmation dialog
+
+### Linux
+
+1. Download **AtonalMusicStudio-1.0.0-linux-x86_64.tar.gz** from the [Releases page](https://github.com/seanrugg/atonal-music-studio/releases)
+2. Extract it:
+   ```bash
+   tar -xzf AtonalMusicStudio-1.0.0-linux-x86_64.tar.gz
+   ```
+3. Run the app:
+   ```bash
+   cd AtonalMusicStudio
+   ./AtonalMusicStudio
+   ```
+4. Optional — add to your application menu:
+   ```bash
+   # Edit Exec= and Icon= paths first, then:
+   cp atonal-music-studio.desktop ~/.local/share/applications/
+   ```
+
+**Linux system dependencies** (if the app fails to start):
+```bash
+sudo apt install libportaudio2 libxcb-cursor0   # Debian/Ubuntu
+sudo dnf install portaudio libxcb               # Fedora
+```
+
+---
+
+## Optional: FFmpeg (for MP3, M4A, AAC export)
+
+The app exports WAV, FLAC, OGG, and AIFF natively. For MP3, M4A, and AAC export you need FFmpeg installed separately:
+
+| Platform | Install command |
+|----------|----------------|
+| Windows  | Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add the `bin` folder to PATH |
+| macOS    | `brew install ffmpeg` |
+| Linux    | `sudo apt install ffmpeg` |
 
 ---
 
@@ -8,145 +66,36 @@ A cross-platform desktop application for non-traditional music composition — a
 
 | Tab | What it does |
 |-----|--------------|
-| **Synthesiser** | Sine, sawtooth, and square wave oscillator with ADSR envelope. Dial in any frequency (or pick a standard note name) and hear it instantly. |
-| **Equation Synth** | Choose a mathematical concept — Fibonacci, π digits, e digits, golden ratio powers, square roots, primes, harmonic series, the logistic (chaos) map, or write your own expression — and map it to a melody. Control the base frequency, scale quantisation, mapping mode, and wave type. |
-| **Sequencer** | A classic 16-step × 8-track step sequencer. Each track has its own note and wave type. Set the BPM, toggle steps on/off, and loop the pattern. |
-| **Samples** | Load audio files in any supported format, preview the waveform, adjust volume and playback speed, and export to any other format. |
+| **Synthesiser** | Sine, sawtooth, square, and triangle wave oscillator with ADSR envelope and Schroeder reverb |
+| **Equation Synth** | Choose a mathematical concept — Fibonacci, π, e, φ, √n, primes, Collatz, Triangular, Catalan, Van der Corput, logistic map, or write your own — and map it to a melody |
+| **Sequencer** | 16-step × 8-track step sequencer with per-step velocity (right-click), swing, per-track pattern length (polyrhythm), and batch track export |
+| **Samples** | Load audio files in any supported format, preview the waveform, adjust volume and playback speed |
+| **Iterated f(x)** | Enter any function f(x), seed it with a starting frequency, and watch the orbit unfold — visualised as a cobweb diagram |
 
 ### Equation mapping modes
 
 | Mode | Description |
 |------|-------------|
-| `ratio` | Multiply the base frequency by each sequence value, folded into the audible range. Works especially well with multiplicative sequences like Fibonacci or powers of φ. |
-| `semitone` | Treat each value as a semitone offset from the base frequency. Good for digit sequences (π, e). |
-| `modular` | Map each value to a scale degree (the value wraps within the chosen scale). Produces melodic patterns from any numeric sequence. |
+| `ratio` | Multiply the base frequency by each sequence value, folded into the audible range |
+| `semitone` | Treat each value as a semitone offset from the base frequency |
+| `modular` | Map each value to a scale degree (wraps within the chosen scale) |
 
 ### Audio formats
 
 | Format | Import | Export | Notes |
 |--------|--------|--------|-------|
-| WAV    | ✅ | ✅ | Lossless, always available |
+| WAV    | ✅ | ✅ | Always available |
 | FLAC   | ✅ | ✅ | Lossless compressed |
 | OGG    | ✅ | ✅ | Open lossy |
 | AIFF   | ✅ | ✅ | Apple lossless |
 | MP3    | ✅ | ✅ | Requires FFmpeg |
 | M4A    | ✅ | ✅ | Requires FFmpeg |
 | AAC    | ✅ | ✅ | Requires FFmpeg |
-| DSF/DFF | ❌ | ❌ | DSD format — convert to WAV first (see below) |
+| DSF/DFF | ❌ | ❌ | DSD — convert to WAV first |
 
 ---
 
-## Installation
-
-### Step 1 — Install Python 3.10 or later
-
-- **Windows**: Download from https://python.org and check "Add Python to PATH" during install.
-- **macOS**: `brew install python` or download from python.org.
-- **Linux**: Usually pre-installed. `sudo apt install python3 python3-pip` on Debian/Ubuntu.
-
-Verify: open a terminal and run `python --version` (or `python3 --version`).
-
----
-
-### Step 2 — Download the application
-
-**Option A — Clone from GitHub (recommended)**
-
-git clone https://github.com/seanrugg/atonal-music-studio.git
-cd atonal-music-studio
-```
-
-If git is not installed:
-- **Linux**: `sudo apt install git`
-- **macOS**: `brew install git` or accept the Xcode prompt when you first run `git`
-- **Windows**: Download from https://git-scm.com
-
-**Option B — Download as a ZIP**
-
-1. Go to https://github.com/seanrugg/atonal-music-studio
-2. Click the green **Code** button → **Download ZIP**
-3. Extract the ZIP and `cd` into the extracted folder
-
-Either way, your working directory should contain these files:
-```
-atonal-music-studio/
-├── main.py
-├── audio_engine.py
-├── equation_engine.py
-├── project_io.py
-├── requirements.txt
-├── README.md
-└── .gitignore
-
----
-
-### Step 3 — Install Python packages
-
-Open a terminal (or Command Prompt on Windows), navigate to the folder, and run:
-
-```bash
-pip install -r requirements.txt
-```
-
-If `pip` is not found, try `pip3` instead.  On some systems you may also need:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
----
-
-### Step 4 (Optional) — Install FFmpeg for MP3 / M4A / AAC support
-
-**Windows:**
-1. Download FFmpeg from https://ffmpeg.org/download.html (choose a pre-built Windows binary).
-2. Extract the archive and locate the `bin` folder containing `ffmpeg.exe`.
-3. Add that `bin` folder to your system PATH, or copy `ffmpeg.exe` next to `main.py`.
-
-**macOS:**
-```bash
-brew install ffmpeg
-```
-
-**Linux (Debian/Ubuntu):**
-```bash
-sudo apt install ffmpeg
-```
-
-You can skip this step entirely if you only need WAV / FLAC / OGG / AIFF.
-
----
-
-### Step 5 — Run the application
-
-```bash
-python main.py
-```
-
-On macOS/Linux you may need:
-```bash
-python3 main.py
-```
-
----
-
-## Project files
-
-Projects are saved as `.ams` files (JSON format).  They store all synthesiser settings, sequencer patterns, and the paths to any sample files you loaded.  Sample audio itself is not embedded — the paths are stored, so keep your sample files accessible.
-
----
-
-## DSD audio (DSF / DFF)
-
-The DSD format requires specialised hardware drivers and cannot be decoded in pure Python.  To use DSD files in the app, convert them to 24-bit WAV first using one of these free tools:
-
-- **dsd2pcm** — command-line, available on GitHub
-- **fre:ac** — free audio converter with DSD support (https://www.freac.org)
-- **Audirvāna / JRiver** — commercial players with DSD-to-PCM export
-
----
-
-## Keyboard shortcuts
+## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
@@ -157,31 +106,92 @@ The DSD format requires specialised hardware drivers and cannot be decoded in pu
 | `Ctrl+E` | Export audio (current tab) |
 | `Space` | Stop all audio |
 | `Ctrl+Q` | Quit |
+| Right-click step button | Set step velocity (Sequencer) |
+
+---
+
+## Project Files
+
+Projects are saved as `.ams` files (JSON). They store all synthesiser settings, sequencer patterns, iterated function state, and the paths to any loaded sample files. Sample audio itself is not embedded — keep your sample files accessible.
+
+---
+
+## For Developers — Building from Source
+
+### Requirements
+
+- Python 3.10 or later
+- Git
+
+### Setup
+
+```bash
+git clone https://github.com/seanrugg/atonal-music-studio.git
+cd atonal-music-studio
+
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# macOS / Linux
+source venv/bin/activate
+
+pip install -r requirements.txt
+pip install -r requirements-dev.txt   # adds PyInstaller + Pillow
+```
+
+### Run from source
+
+```bash
+python main.py
+```
+
+### Build distributable
+
+**Windows** (run in Command Prompt with venv active):
+```bat
+build_win.bat
+```
+Produces `dist\AtonalMusicStudio\AtonalMusicStudio.exe` and, if Inno Setup 6 is installed, `installer\AtonalMusicStudio-Setup.exe`.
+
+Download Inno Setup 6: https://jrsoftware.org/isinfo.php
+
+**macOS**:
+```bash
+chmod +x build_mac.sh
+./build_mac.sh
+```
+Produces `dist/AtonalMusicStudio.app` and, if `create-dmg` is installed (`brew install create-dmg`), `dist/AtonalMusicStudio-1.0.0-mac.dmg`.
+
+**Linux**:
+```bash
+chmod +x build_linux.sh
+./build_linux.sh
+```
+Produces `dist/AtonalMusicStudio/` and `dist/AtonalMusicStudio-1.0.0-linux-x86_64.tar.gz`.
+
+### Release checklist
+
+- [ ] Update `AppVersion` in `installer/atonal_setup.iss`
+- [ ] Update `APP_VERSION` in `build_mac.sh` and `build_linux.sh`
+- [ ] Update `CFBundleShortVersionString` in `atonal.spec`
+- [ ] Build on each target platform (Windows, macOS, Linux)
+- [ ] Test each build on a clean machine before uploading
+- [ ] Upload all three distributables to the GitHub Releases page
 
 ---
 
 ## Troubleshooting
 
-**"No module named PyQt6"** — Run `pip install PyQt6` again and make sure you are using the correct Python installation.
+**Windows SmartScreen warning** — Click "More info" → "Run anyway". This is expected for unsigned apps.
 
-**"PortAudio not found" / sounddevice error** — Install the PortAudio library for your OS:
-- Windows: usually bundled with the sounddevice wheel, no extra step needed.
-- macOS: `brew install portaudio`
-- Linux: `sudo apt install libportaudio2`
+**macOS "app is damaged"** — Run in Terminal: `xattr -cr /Applications/AtonalMusicStudio.app`
 
-**No audio output** — Check that your system audio is not muted and that the correct output device is selected in your OS sound settings.
+**Linux: app won't start** — Install `libportaudio2` and `libxcb-cursor0` (see Linux install section above).
 
-**MP3 / M4A export fails** — Make sure FFmpeg is installed and accessible from the command line (`ffmpeg -version` should work in a terminal).
+**No audio output** — Check your system audio is not muted and the correct output device is selected.
 
-**App opens but looks odd on a high-DPI screen** — Set the environment variable `QT_SCALE_FACTOR=1` before running, or let your OS handle scaling.
+**MP3/M4A export fails** — Install FFmpeg and verify `ffmpeg -version` works in a terminal.
 
----
-
-## Tips for non-traditional music
-
-- Use **Free (Atonal)** scale mode in the Equation Synth for pure mathematical output with no note quantisation.
-- Try **Logistic Map** with r values between 3.57 and 4.0 for chaotic, non-repeating sequences.
-- Layer the Sequencer with ambient samples loaded in the Samples tab and play both simultaneously.
-- The **ratio** mapping mode with the **Harmonic Series (1/n)** sequence produces descending overtone clouds — good for tonal drones.
-- Use very long attack and release times (2–4 s) in the Synthesiser tab for evolving, ambient pads.
-- Export individual layers as WAV and mix them in any DAW for a complete production workflow.
+**App opens but looks odd on high-DPI screen** — Set `QT_SCALE_FACTOR=1` before launching, or use your OS display scaling settings.
