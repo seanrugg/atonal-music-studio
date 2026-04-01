@@ -84,18 +84,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-excludes=[
-        # Things we definitely don't need — keeps the bundle smaller
-        "tkinter",
-        "pydoc",
-        "doctest",
-        "difflib",
-        "calendar",
-        "ftplib",
-        "test",
-        "IPython",
-        "matplotlib",
-    ],
+excludes=[],
     noarchive=False,
     optimize=1,
 )
