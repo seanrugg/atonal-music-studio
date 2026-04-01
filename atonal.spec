@@ -84,16 +84,9 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[
+excludes=[
         # Things we definitely don't need — keeps the bundle smaller
         "tkinter",
-        "unittest",
-        "email",
-        "html",
-        "http",
-        "urllib",
-        "xmlrpc",
-        "xml",
         "pydoc",
         "doctest",
         "difflib",
